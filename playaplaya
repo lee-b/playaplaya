@@ -122,7 +122,6 @@ class Main(object):
     def _restore_position_for_playlist(self, playlist, default_file):
         fpath, pos = self._conf.get_pos(playlist, default_file)
         self._play_new_file(fpath)
-        print "Loaded pos for %s: %.2f; seeking." % (fpath, pos)
         self._change_slider_and_seek_to(pos)
 
     def _change_slider_and_seek_to(self, new_pos):

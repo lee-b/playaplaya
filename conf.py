@@ -12,7 +12,6 @@ class Conf(object):
 
     def load(self):
         self._cp.read(self._conf_fpath)
-        print "Conf loaded"
 
     def save(self):
         if not os.path.exists(self._conf_dir):
@@ -33,7 +32,6 @@ class Conf(object):
         else:
             fpath = self._cp.get(playlist, 'current_file')
             pos = self._cp.getfloat(playlist, 'current_pos')
-        print "Loaded position for %s: %s @ %f" % (playlist, fpath, pos)
         return fpath, pos
 
     def get_playlist(self):
@@ -58,5 +56,4 @@ class Conf(object):
 
         self._cp.set(playlist, 'current_file', fpath)
         self._cp.set(playlist, 'current_pos', pos)
-        print "Save pos for %s: %s @ %f" % (playlist, fpath, pos)
 
