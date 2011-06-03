@@ -6,37 +6,107 @@ import gst
 import pygtk
 import gtk
 import gtk.glade
+import gobject
+import os
 
 class Main:
+    COL_NUM=0
+    COL_FILENAME=1
+
     def __init__(self):
+        self._init_gui()
+        self._init_gst()
+        self._main_win.show()
 
-        # Create gui bits and bobs
+    def _init_gui(self):
+        filename = "gui.glade"
 
-        self.wTree = gtk.glade.XML("gui.glade", "mainwindow")
+        self._builder = gtk.Builder()
+        self._builder.add_from_file(filename)
+        self._builder.connect_signals(self)
 
-        signals = {
-            "on_play_clicked" : self.OnPlay,
-            "on_stop_clicked" : self.OnStop,
-            "on_quit_clicked" : self.OnQuit,
-        }
+        self._playliststore = self._builder.get_object('playliststore')
 
-        self.wTree.signal_autoconnect(signals)
+        # add treeview columns
+        treeview = self._builder.get_object('playlistview')
+        cell0 = gtk.CellRendererText()
+        cell1 = gtk.CellRendererText()
+        col0 = gtk.TreeViewColumn("Num", cell0, text=self.__class__.COL_NUM)
+        col1 = gtk.TreeViewColumn("Filename", cell1, text=self.__class__.COL_FILENAME)
+        treeview.append_column(col0)
+        treeview.append_column(col1)
 
-        # Create GStreamer bits and bobs
+        self._main_win = self._builder.get_object('mainwin')
+        self._main_win.show()
 
-        self.pipeline = gst.Pipeline("mypipeline")
+    def _init_gst(self):
+        self._player = gst.Pipeline("player")
+        source = gst.element_factory_make("filesrc", "file-source")
+        decoder = gst.element_factory_make("mad", "mp3-decoder")
+        conv = gst.element_factory_make("audioconvert", "converter")
+        sink = gst.element_factory_make("alsasink", "alsa-output")
 
-        self.audiotestsrc = gst.element_factory_make("audiotestsrc", "audio")
-        self.audiotestsrc.set_property("freq", 200)
-        self.pipeline.add(self.audiotestsrc)
+        self._player.add(source, decoder, conv, sink)
+        gst.element_link_many(source, decoder, conv, sink)
 
-        self.sink = gst.element_factory_make("alsasink", "sink")
-        self.pipeline.add(self.sink)
+        bus = self._player.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message", self.on_message)
 
-        self.audiotestsrc.link(self.sink)
+    def _play_new_file(self, fpath):
+        print "Playing '%s'" % fpath
+#        self._playPausebutton.set_label("Pause")
+        self._player.get_by_name("file-source").set_property("location", fpath)
+        self._player.set_state(gst.STATE_PLAYING)
 
-        self.window = self.wTree.get_widget("mainwindow")
-        self.window.show_all()
+    def on_book_open_menuitem_activate(self, widget):
+        file_chooser = self._builder.get_object('playlistchooserdialog')
+        file_chooser.show()
+
+    def on_mainwin_destroy(self, widget):
+        gtk.main_quit()
+
+    def _install_playlist_lines(self, lines):
+        playliststore = self._builder.get_object("playliststore")
+        playliststore.clear()
+        count = 1
+        for l in lines:
+            r = playliststore.append([count, l])
+            print "added '%s', got %r" % (l, r)
+            count += 1
+        self._main_win.show()
+
+    def _load_playlist(self, fname):
+        fp = open(fname, 'r')
+        lines = fp.readlines()
+        lines = [ l.strip() for l in lines ]
+        lines = [ l for l in lines if not l.startswith('#') ]
+        fp.close()
+        fp = None
+        return lines
+
+    def on_playlistchooserdialog_file_activated(self, filedialog):
+        lines = self._load_playlist(filedialog.get_filename())
+        self._install_playlist_lines(lines)
+        filedialog.hide()
+
+    def on_playlistview_cursor_changed(self, widget):
+        path, col = widget.get_cursor()
+        it = self._playliststore.get_iter(path)
+        filepath = self._playliststore.get_value(it, 1)
+        self._play_new_file(filepath)
+
+    def on_message(self, bus, message):
+        t = message.type
+
+        if t == gst.MESSAGE_EOS:
+            self.player.set_state(gst.STATE_NULL)
+            self.button.set_label("Start")
+        elif t == gst.MESSAGE_ERROR:
+            self.player.set_state(gst.STATE_NULL)
+            self.button.set_label("Start")
+            err, debug = message.parse_error()
+            print "Error: %s" % err, debug
 
     def OnPlay(self, widget):
         print "play"
@@ -46,9 +116,7 @@ class Main:
         print "stop"
         self.pipeline.set_state(gst.STATE_READY)
 
-    def OnQuit(self, widget):
-        gtk.main_quit()
-
-start=Main()
+Main()
+gtk.gdk.threads_init()
 gtk.main()
 
