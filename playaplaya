@@ -65,6 +65,7 @@ class Main(object):
         self._playPauseButton = self._builder.get_object('playPauseButton')
 
         self._slider = self._builder.get_object('playerHScale')
+        self._slider.set_draw_value(False)
 
         self._bookCoverImage = self._builder.get_object('bookCoverImage')
 
