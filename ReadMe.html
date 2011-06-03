@@ -1,0 +1,133 @@
+<html>
+    <head>
+        <title>PlayaPlaya</title>
+        <style>
+            body, .page {
+                margin: 0;
+                padding: 0;
+                border: 0;
+            }
+            body {
+                background-color: darkgray;
+            }
+            .page {
+                max-width: 960px;
+                margin: 0 auto;
+                background-color: white;
+            }
+            h1, h2 {
+                color: green;
+            }
+            .legalese {
+                text-align: right;
+                font-size: 0.7em;
+                text-align: right;
+            }
+            .slogan {
+                float: right;
+            }
+            .legalese, .slogan {
+                padding: 0 1em 1em 0;
+            }
+            hr {
+                border: 2px solid green;
+                width: 100%;
+                clear: both;
+            }
+            .content {
+                margin: 2em 3em;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="page">
+            <div class="header">
+                <p class="slogan">A <a href="http://www.kintassa.com/">Kintassa</a> project</p>
+                <h1>PlayaPlaya</h1>
+                <hr>
+            </div>
+
+            <div class="content">
+                <h2>Introduction</h2>
+
+                <p>This is a simple audiobook player.  Features include:</p>
+                
+                <ul>
+                    <li>Focused on audiobooks</li>
+                    <li>Tracks the last playback position, and resumes when restarted.</li>
+                    <li>Playlist-centric, where each playlist represents a book</li>
+                    <li>Remembers positions on a per-playlist basis: open a playlist, and it'll resume where it left off.</li>
+                    <li>Start it without specifying a playlist, and it'll resume with the last playlist, at the last position</li>
+                    <li>Doesn't try to manage your audio files.</li>
+                    <li>Doesn't try to manage your devices.</li>
+                    <li>GStreamer-based audio playback</li>
+                </ul>
+
+
+                <h2>Limitations</h2>
+                
+                <ul>
+                    <li>Currently only supports .m3u playlists, and .mp3 files.  This will change soon.</li>
+                    <li>Installation is very easy, but it currently lacks the niceties like menu entries and mimetype associations.</li>
+                </ul>
+
+                <p>YOUR contributions to fix these issues are very welcome.  Otherwise, leave it with us and we'll get to it
+                in good time.</p>
+
+
+                <h2>Requirements</h2>
+
+                To run PlayaPlaya, you currently require a Unix-like operating system, such as Linux or BSD.  PlayaPlaya may run on Mac
+                and Windows, but this hasn't been tested yet.  Beyond Unix, you only need the following:
+
+                <ul>
+                    <li>PyGTK</li>
+                    <li>PyGST</li>
+                </ul>
+
+                <p>Your distro should provide all of these; please check your distro's documentation / support if
+                you need help with installing them.</p>
+
+
+                <h2>Installation</h2>
+
+                <p>Installation is very easy; unzip the archive to any directory, and make a symlink from the
+                playaplaya file within, to your bin directory.</p>
+
+                <p>For example, to install at /usr/local/soft/PlayaPlaya:</p>
+                
+                <p><code>
+                mkdir /usr/local/soft
+                cd /usr/local/soft
+                unzip x path_to_zip_file_v1.x.zip
+                cd /usr/local/bin
+                ln -s ../soft/PlayaPlaya_v1.x/playaplaya .
+                </code></p>
+
+                <p>Be sure to replace v1.x with the appropriate version number, depending on which version
+                you're installing.</p>
+
+                <p>If you've completed this successfully, PlayaPlaya will be available as "playaplaya" on the
+                command line.  You can also right-click a playlist on your desktop, and navigate to this
+                command in /usr/local/bin, to have your desktop open playlists with PlayaPlaya from now on.</p>
+
+
+                <h2>Usage</h2>
+                
+                <p>To use PlayaPlaya, simply run it, and open a .m3u playlist.  The rest should be obvious.
+
+                
+                <h2>Questions, Bug reports, Feature Requests, and Participation</h2>
+                
+                <p>Feel free to ask questions, report bugs, send patches, etc., using the <a href="https://projects.kintassa.com/projects/playaplaya/">PlayaPlaya
+                Project Site</a>.</p>
+            </div>
+                
+            <div class="footer">
+                <hr>
+                <p class="legalese">Copyright &copy; 2011 <a href="http://www.kintassa.com">Kintassa</a>.  Released under the GNU General Public License, version 3.</p>
+            </div>
+        </div>
+    </body>
+</html>
+
