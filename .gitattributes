@@ -1,0 +1,4 @@
+PlayaPlaya.kdev4   export-ignore
+*.pyc              export-ignore
+.gitignore         export-ignore
+.gitattributes     export-ignore
