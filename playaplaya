@@ -23,7 +23,7 @@ class Main(object):
     COL_FILENAME=1
 
     def _rel_path(self, p):
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), p)
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), p)
 
     def __init__(self, app_name, *args, **kwargs):
         super(Main, self).__init__(*args, **kwargs)
