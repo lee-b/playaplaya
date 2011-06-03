@@ -4,6 +4,7 @@
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="mainwin">
     <property name="can_focus">False</property>
+    <property name="resizable">False</property>
     <signal name="destroy" handler="on_mainwin_destroy" swapped="no"/>
     <child>
       <object class="GtkVBox" id="vbox1">
@@ -73,13 +74,14 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem5">
+                      <object class="GtkImageMenuItem" id="app_quit_menuitem">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_action_appearance">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_app_quit_menuitem_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -192,9 +194,11 @@
           <object class="GtkHScale" id="playerHScale">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="show_fill_level">True</property>
+            <property name="restrict_to_fill_level">False</property>
             <property name="round_digits">1</property>
             <property name="digits">2</property>
+            <property name="value_pos">right</property>
+            <signal name="value-changed" handler="on_playerHScale_value_changed" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -206,6 +210,7 @@
           <object class="GtkHButtonBox" id="hbuttonbox1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="homogeneous">True</property>
             <child>
               <object class="GtkButton" id="fastBackButton">
                 <property name="label">gtk-media-previous</property>
@@ -244,6 +249,7 @@
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_playPauseButton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -321,8 +327,8 @@
             </child>
           </object>
           <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
             <property name="position">4</property>
           </packing>
         </child>

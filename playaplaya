@@ -8,15 +8,22 @@ import gtk
 import gtk.glade
 import gobject
 import os
+import sys
+
+from conf import Conf
 
 class Main(object):
     MSECS_PER_TICK = 200
+    DEFAULT_BOOK_IMAGE_W = 100
+    DEFAULT_BOOK_IMAGE_H = 100
 
     COL_NUM=0
     COL_FILENAME=1
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app_name, *args, **kwargs):
         super(Main, self).__init__(*args, **kwargs)
+
+        self._conf = Conf(app_name)
 
         self._current_pos = None
         self._current_duration = None
@@ -25,7 +32,16 @@ class Main(object):
 
         self._init_gui()
         self._init_gst()
+        
+        self._conf.load()
+        self._restore_playlist()
+
         self._main_win.show()
+
+    def _restore_playlist(self):
+        pl = self._conf.get_playlist()
+        if pl:
+            self._load_playlist(pl)
 
     def _init_gui(self):
         filename = "gui.glade"
@@ -39,6 +55,15 @@ class Main(object):
         self._playliststore = self._builder.get_object('playliststore')
         self._playPauseButton = self._builder.get_object('playPauseButton')
         self._slider = self._builder.get_object('playerHScale')
+        self._bookCoverImage = self._builder.get_object('bookCoverImage')
+
+        self._bookTitleLabel = self._builder.get_object('bookTitleLabel')
+        self._chapterLabel = self._builder.get_object('chapterLabel')
+        self._miscLabel = self._builder.get_object('miscLabel')
+
+        self._bookTitleLabel.set_label(u"")
+        self._chapterLabel.set_label(u"")
+        self._miscLabel.set_label(u"")
 
         # add treeview columns
         treeview = self._builder.get_object('playlistview')
@@ -51,8 +76,10 @@ class Main(object):
 
         gobject.timeout_add(self.__class__.MSECS_PER_TICK, self.on_tick)
 
+        img = self._load_image('images/book.png', self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
+        self._bookCoverImage.set_from_pixbuf(img)
+
         self._main_win = self._builder.get_object('mainwin')
-        self._main_win.show()
 
     def _init_gst(self):
         self._player = gst.Pipeline("player")
@@ -68,48 +95,111 @@ class Main(object):
         bus.add_signal_watch()
         bus.connect("message", self.on_message)
 
-    def _restore_position_for_file(self, playlist, fpath):
-        self._current_pos = 0
-        self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_FLUSH, self._current_pos)
+    def _load_image(self, fname, w, h):
+        pixbuf = gtk.gdk.pixbuf_new_from_file(fname)
+        new_pb = pixbuf.scale_simple(w,h,gtk.gdk.INTERP_BILINEAR)
+        return new_pb
 
-    def _play_new_file(self, fpath):
-        self._playPauseButton.set_label("Pause")
+    def _restore_position_for_playlist(self, playlist, default_file):
+        fpath, pos = self._conf.get_pos(playlist, default_file)
+        self._play_new_file(fpath)
+        print "Loaded pos for %s: %.2f; seeking." % (fpath, pos)
+        self._change_slider_and_seek_to(pos)
+
+    def _change_slider_and_seek_to(self, new_pos):
+        self._change_slider_pos(new_pos)
+        self._seek_to(new_pos)
+
+    def _change_slider_pos(self, new_pos):
+        try:
+            self._slider.handler_block_by_func(self.on_playerHScale_value_changed)
+        except TypeError:
+            pass
+        self._slider.set_range(0.0, self._current_duration)
+        self._slider.set_value(new_pos)
+        try:
+            self._slider.handler_unblock_by_func(self.on_playerHScale_value_changed)
+        except TypeError:
+            pass
+
+    def _seek_to(self, new_pos):
+        self._current_pos = new_pos
+        if self._is_playing():
+            self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_FLUSH, new_pos)
+        else:
+            self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_SET, new_pos)
+
+    def _is_playing(self):
+        states = self._player.get_state()
+        return states[1] == gst.STATE_PLAYING
+
+    def _set_file(self, fpath):
         self._player.get_by_name("file-source").set_property("location", fpath)
         self._current_file = fpath
-        self._restore_position_for_file(self._current_playlist, fpath)
+
+    def _prettify_fpath(self, fpath):
+        basename = os.path.basename(fpath)
+        basename.replace('_', ' ')
+        basename = basename.split('.')[0]
+        return basename
+
+    def _play_new_file(self, fpath):
+        self._current_duration = 0.1 # we don't know, but assume this is more than 0, since gtkscale doesn't like it if max == min
+        if self._is_playing():
+            self._pause()
+        self._set_file(fpath)
+        self._chapterLabel.set_label(self._prettify_fpath(fpath))
+        self._miscLabel.set_label(u"")
+        self._play()
+
+    def _play(self):
         self._player.set_state(gst.STATE_PLAYING)
+        self._playPauseButton.set_label("Pause")
+
+    def _pause(self):
+        self._player.set_state(gst.STATE_READY)
+        self._playPauseButton.set_label("Play")
+
+    def _stop(self):
+        self._player.set_state(gst.STATE_NULL)
+        self._playPauseButton.set_label("Play")
 
     def on_book_open_menuitem_activate(self, widget):
         file_chooser = self._builder.get_object('playlistchooserdialog')
         file_chooser.show()
-
-    def on_mainwin_destroy(self, widget):
-        gtk.main_quit()
 
     def _install_playlist_lines(self, lines):
         playliststore = self._builder.get_object("playliststore")
         playliststore.clear()
         count = 1
         for l in lines:
-            r = playliststore.append([count, l])
-            print "added '%s', got %r" % (l, r)
+            playliststore.append([count, l])
             count += 1
         self._main_win.show()
 
-    def _load_playlist(self, fname):
-        fp = open(fname, 'r')
+    def _load_playlist(self, fpath):
+        fp = open(fpath, 'r')
         lines = fp.readlines()
         lines = [ l.strip() for l in lines ]
         lines = [ l for l in lines if not l.startswith('#') ]
         fp.close()
         fp = None
-        self._current_playlist = fname
+
+        self._current_playlist = fpath
+        name = self._prettify_fpath(fpath)
+        self._bookTitleLabel.set_label(name)
+
+        self._restore_position_for_playlist(self._current_playlist, lines[0])
+
         return lines
 
     def on_playlistchooserdialog_file_activated(self, filedialog):
-        lines = self._load_playlist(filedialog.get_filename())
-        self._install_playlist_lines(lines)
         filedialog.hide()
+        lines = self._load_playlist(filedialog.get_filename())
+        if lines is not None:
+            first = lines[0]
+            self._install_playlist_lines(lines)
+            self._play_new_file(first)
 
     def on_playlistview_cursor_changed(self, widget):
         path, col = widget.get_cursor()
@@ -121,36 +211,47 @@ class Main(object):
         t = message.type
 
         if t == gst.MESSAGE_EOS:
-            self._player.set_state(gst.STATE_NULL)
-            self._button.set_label("Start")
+            self._stop()
         elif t == gst.MESSAGE_ERROR:
-            self._player.set_state(gst.STATE_NULL)
-            self._button.set_label("Start")
+            self._stop()
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
 
     def on_tick(self):
-        states = self._player.get_state()
-        if gst.STATE_PLAYING in states:
+        if self._is_playing():
             try:
+                self._current_duration = float(self._player.query_duration(self._TIME_FORMAT)[0])
                 self._current_pos = self._player.query_position(self._TIME_FORMAT)[0]
-                self._current_duration = self._player.query_duration(self._TIME_FORMAT)[0]
-                print "Current duration:", self._current_duration
-                self._slider.set_range(0.0, float(self._current_duration))
-                self._slider.set_value(float(self._current_pos))
+                self._change_slider_pos(self._current_pos)
             except gst.QueryError:
-                return True
+                pass
+
         return True
 
-    def OnPlay(self, widget):
-        self.pipeline.set_state(gst.STATE_PLAYING)
+    def on_playerHScale_value_changed(self, widget):
+        val = widget.get_value()
+        self._seek_to(val)
 
-    def OnStop(self, widget):
-        self.pipeline.set_state(gst.STATE_READY)
+    def on_playPauseButton_clicked(self, widget):
+        if self._is_playing():
+            self._pause()
+        else:
+            self._play()
 
-main = Main()
+    def _quit(self):
+        if self._current_playlist and self._current_file:
+            self._conf.set_playlist(self._current_playlist)
+            self._conf.set_pos(self._current_playlist, self._current_file, self._current_pos)
+        self._conf.save()
+        gtk.main_quit()
+
+    def on_mainwin_destroy(self, widget):
+        self._quit()
+
+    def on_app_quit_menuitem_activate(self, widget):
+        self._quit()
+
+main = Main("PlayaPlaya")
 gtk.gdk.threads_init()
 gtk.main()
 
-if main._current_pos:
-    print "Last position:", main._current_pos
