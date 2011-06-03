@@ -40,12 +40,12 @@ class Main(object):
         self._current_file = None
         self._current_playlist = None
 
+        self._playlist_format_manager = PlaylistFormatManager()
+
         self._init_gui()
         self._init_gst()
         
         self._conf.load()
-
-        self._playlist_format_manager = PlaylistFormatManager()
 
         if len(sys.argv) == 2:
             playlist = sys.argv[1]
@@ -84,7 +84,8 @@ class Main(object):
         self._chapterLabel = self._builder.get_object('chapterLabel')
         self._miscLabel = self._builder.get_object('miscLabel')
 
-        self._status_bar = self._builder.get_object('statusbar')
+        self._statusbar = self._builder.get_object('statusbar')
+        self._statusbar_context_id = self._statusbar.get_context_id(u"status")
 
         self._bookTitleLabel.set_label(u"")
         self._chapterLabel.set_label(u"")
@@ -94,25 +95,9 @@ class Main(object):
 
         # setup the playlist file dialog
         self._file_chooser = self._builder.get_object('playlistchooserdialog')
-
-        self._file_chooser_playlists_filter = gtk.FileFilter()
-        self._file_chooser_playlists_filter.set_name("Recognised playlists (m3u)")
-        self._file_chooser_playlists_filter.add_pattern("*.m3u")
-        self._file_chooser.add_filter(self._file_chooser_playlists_filter)
-
-        self._file_chooser_allfiles_filter = gtk.FileFilter()
-        self._file_chooser_allfiles_filter.set_name("All files")
-        self._file_chooser_allfiles_filter.add_pattern("*")
-        self._file_chooser.add_filter(self._file_chooser_allfiles_filter)
-
-        # add treeview columns
-        treeview = self._builder.get_object('playlistview')
-        cell0 = gtk.CellRendererText()
-        cell1 = gtk.CellRendererText()
-        col0 = gtk.TreeViewColumn("Num", cell0, text=self.__class__.COL_NUM)
-        col1 = gtk.TreeViewColumn("Filename", cell1, text=self.__class__.COL_FILENAME)
-        treeview.append_column(col0)
-        treeview.append_column(col1)
+        self._init_file_chooser_filters()
+        
+        self._init_treeview()
 
         gobject.timeout_add(self.__class__.MSECS_PER_TICK, self.on_tick)
         gobject.timeout_add(self.__class__.MSECS_PER_SAVE, self.on_periodic_save)
@@ -120,6 +105,40 @@ class Main(object):
         img_path = self._rel_path('images/book.png')
         img = self._load_image(img_path, self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
         self._bookCoverImage.set_from_pixbuf(img)
+
+    def _init_treeview(self):
+        # add treeview columns
+        self._treeview = self._builder.get_object('playlistview')
+        cell0 = gtk.CellRendererText()
+        cell1 = gtk.CellRendererText()
+        col0 = gtk.TreeViewColumn("Num", cell0, text=self.__class__.COL_NUM)
+        col1 = gtk.TreeViewColumn("Filename", cell1, text=self.__class__.COL_FILENAME)
+        self._treeview.append_column(col0)
+        self._treeview.append_column(col1)
+
+    def _init_file_chooser_filters(self):
+        all_formats_filter = gtk.FileFilter()
+        all_formats_filter.set_name("Recognised playlists")
+
+        other_format_filters = []
+
+        for filter_name, filter_exts in self._playlist_format_manager.supported_filters():
+            f = gtk.FileFilter()
+            f.set_name(filter_name)
+            for ext in filter_exts:
+                pat = u"*" + ext
+                all_formats_filter.add_pattern(pat)
+                f.add_pattern(pat)
+            other_format_filters.append(f)
+
+        self._file_chooser.add_filter(all_formats_filter)
+        for filt in other_format_filters:
+            self._file_chooser.add_filter(filt)
+
+        self._file_chooser_allfiles_filter = gtk.FileFilter()
+        self._file_chooser_allfiles_filter.set_name("All files")
+        self._file_chooser_allfiles_filter.add_pattern("*")
+        self._file_chooser.add_filter(self._file_chooser_allfiles_filter)
 
     def _init_gst(self):
         self._player = gst.element_factory_make("playbin2", "player")
@@ -240,7 +259,7 @@ class Main(object):
                     self._install_playlist_files(filelist)
                     self._restore_position_for_playlist(self._current_playlist, filelist[0])
                     return
-        self._statusbar.push("Couldn't load %s" % fpath)
+        self._statusbar.push(self._statusbar_context_id, "Couldn't load %s" % fpath)
 
     def on_playlistchooserdialog_file_activated(self, filedialog):
         filedialog.hide()
