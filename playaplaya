@@ -9,6 +9,7 @@ import gtk.glade
 import gobject
 import os
 import sys
+import time
 
 from conf import Conf
 
@@ -54,7 +55,9 @@ class Main(object):
 
         self._playliststore = self._builder.get_object('playliststore')
         self._playPauseButton = self._builder.get_object('playPauseButton')
+
         self._slider = self._builder.get_object('playerHScale')
+
         self._bookCoverImage = self._builder.get_object('bookCoverImage')
 
         self._bookTitleLabel = self._builder.get_object('bookTitleLabel')
@@ -110,24 +113,30 @@ class Main(object):
         self._change_slider_pos(new_pos)
         self._seek_to(new_pos)
 
-    def _change_slider_pos(self, new_pos):
+    def _disable_slider(self):
         try:
             self._slider.handler_block_by_func(self.on_playerHScale_value_changed)
         except TypeError:
             pass
-        self._slider.set_range(0.0, self._current_duration)
-        self._slider.set_value(new_pos)
+
+    def _enable_slider(self):
         try:
             self._slider.handler_unblock_by_func(self.on_playerHScale_value_changed)
         except TypeError:
             pass
+
+    def _change_slider_pos(self, new_pos):
+        self._disable_slider()
+        self._slider.set_range(0.0, self._current_duration)
+        self._slider.set_value(new_pos)
+        self._enable_slider()
 
     def _seek_to(self, new_pos):
         self._current_pos = new_pos
         if self._is_playing():
             self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_FLUSH, new_pos)
         else:
-            self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_SET, new_pos)
+            self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_SKIP, new_pos)
 
     def _is_playing(self):
         states = self._player.get_state()
@@ -136,6 +145,7 @@ class Main(object):
     def _set_file(self, fpath):
         self._player.get_by_name("file-source").set_property("location", fpath)
         self._current_file = fpath
+        self._change_slider_and_seek_to(0.0)
 
     def _prettify_fpath(self, fpath):
         basename = os.path.basename(fpath)
@@ -144,9 +154,8 @@ class Main(object):
         return basename
 
     def _play_new_file(self, fpath):
+        self._stop()
         self._current_duration = 0.1 # we don't know, but assume this is more than 0, since gtkscale doesn't like it if max == min
-        if self._is_playing():
-            self._pause()
         self._set_file(fpath)
         self._chapterLabel.set_label(self._prettify_fpath(fpath))
         self._miscLabel.set_label(u"")
@@ -161,7 +170,9 @@ class Main(object):
         self._playPauseButton.set_label("Play")
 
     def _stop(self):
+        self._seek_to(0.0)
         self._player.set_state(gst.STATE_NULL)
+        self._current_pos = 0
         self._playPauseButton.set_label("Play")
 
     def on_book_open_menuitem_activate(self, widget):
@@ -175,7 +186,6 @@ class Main(object):
         for l in lines:
             playliststore.append([count, l])
             count += 1
-        self._main_win.show()
 
     def _load_playlist(self, fpath):
         fp = open(fpath, 'r')
@@ -189,17 +199,14 @@ class Main(object):
         name = self._prettify_fpath(fpath)
         self._bookTitleLabel.set_label(name)
 
-        self._restore_position_for_playlist(self._current_playlist, lines[0])
+        if lines is not None:
+            self._install_playlist_lines(lines)
 
-        return lines
+        self._restore_position_for_playlist(self._current_playlist, lines[0])
 
     def on_playlistchooserdialog_file_activated(self, filedialog):
         filedialog.hide()
-        lines = self._load_playlist(filedialog.get_filename())
-        if lines is not None:
-            first = lines[0]
-            self._install_playlist_lines(lines)
-            self._play_new_file(first)
+        self._load_playlist(filedialog.get_filename())
 
     def on_playlistview_cursor_changed(self, widget):
         path, col = widget.get_cursor()
@@ -207,11 +214,41 @@ class Main(object):
         filepath = self._playliststore.get_value(it, 1)
         self._play_new_file(filepath)
 
+    def _clear_current_file(self):
+        self._chapterLabel.set_label(u"")
+        self._miscLabel.set_label(u"")
+        self._slider.set_range(0.0, 0.1)
+        self._slider.set_value(0.0)
+
+    def _next_file(self):
+        self._clear_current_file()
+    
+        current_file = self._current_file
+        num_items = len(self._playliststore)
+
+        current_idx = None
+        for idx, item in enumerate(self._playliststore):
+            if item[1] == current_file:
+                current_idx = idx
+
+        next_file = None
+        if current_idx is not None:
+            next_idx = current_idx+1
+            if next_idx < num_items:
+                next_item = self._playliststore[next_idx]
+                next_file = next_item[1]
+
+        if next_file:
+            print "Attempting to play %r" % next_file
+            self._play_new_file(next_file)
+        else:
+            self._stop()
+
     def on_message(self, bus, message):
         t = message.type
 
         if t == gst.MESSAGE_EOS:
-            self._stop()
+            self._next_file()
         elif t == gst.MESSAGE_ERROR:
             self._stop()
             err, debug = message.parse_error()
@@ -237,6 +274,18 @@ class Main(object):
             self._pause()
         else:
             self._play()
+
+    def on_previousButton_clicked(self, widget):
+        pass
+
+    def on_backButton_clicked(self, widget):
+        pass
+
+    def on_forwardButton_clicked(self, widget):
+        pass
+
+    def on_nextButton_clicked(self, widget):
+        self._next_file()
 
     def _quit(self):
         if self._current_playlist and self._current_file:

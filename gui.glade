@@ -212,13 +212,14 @@
             <property name="can_focus">False</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkButton" id="fastBackButton">
+              <object class="GtkButton" id="previousButton">
                 <property name="label">gtk-media-previous</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_previousButton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -265,6 +266,7 @@
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_forwardButton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -273,13 +275,14 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="fastForwardButton">
+              <object class="GtkButton" id="nextButton">
                 <property name="label">gtk-media-next</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_nextButton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
