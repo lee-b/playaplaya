@@ -11,6 +11,7 @@ import os
 import sys
 import time
 
+
 from conf import Conf
 
 class Main(object):
@@ -27,6 +28,8 @@ class Main(object):
         return os.path.join(os.path.dirname(os.path.realpath(__file__)), p)
 
     def __init__(self, app_name, *args, **kwargs):
+        from playlist_handler import PlaylistFormatManager
+
         super(Main, self).__init__(*args, **kwargs)
         self._app_name = app_name
 
@@ -41,6 +44,8 @@ class Main(object):
         self._init_gst()
         
         self._conf.load()
+
+        self._playlist_format_manager = PlaylistFormatManager()
 
         if len(sys.argv) == 2:
             playlist = sys.argv[1]
@@ -78,6 +83,8 @@ class Main(object):
         self._bookTitleLabel = self._builder.get_object('bookTitleLabel')
         self._chapterLabel = self._builder.get_object('chapterLabel')
         self._miscLabel = self._builder.get_object('miscLabel')
+
+        self._status_bar = self._builder.get_object('statusbar')
 
         self._bookTitleLabel.set_label(u"")
         self._chapterLabel.set_label(u"")
@@ -206,30 +213,34 @@ class Main(object):
     def on_book_open_menuitem_activate(self, widget):
         self._file_chooser.show()
 
-    def _install_playlist_lines(self, lines):
+    def _install_playlist_files(self, files):
         playliststore = self._builder.get_object("playliststore")
         playliststore.clear()
         count = 1
-        for l in lines:
-            playliststore.append([count, l])
+        for f in files:
+            playliststore.append([count, f])
             count += 1
 
+    def _playlist_handler_for(self, fpath):
+        basename, ext = os.path.splitext(fpath)
+        for h in self._playlist_handlers:
+            if ext in h.extensions():
+                return h
+        return None
+
     def _load_playlist(self, fpath):
-        fp = open(fpath, 'r')
-        lines = fp.readlines()
-        lines = [ l.strip() for l in lines ]
-        lines = [ l for l in lines if not l.startswith('#') ]
-        fp.close()
-        fp = None
-
-        self._current_playlist = fpath
-        name = self._prettify_fpath(fpath)
-        self._bookTitleLabel.set_label(name)
-
-        if lines is not None:
-            self._install_playlist_lines(lines)
-
-        self._restore_position_for_playlist(self._current_playlist, lines[0])
+        handler = self._playlist_format_manager.handler_for_filepath(fpath)
+        if handler is not None:
+            book = handler.load_book(fpath)
+            if book is not None:
+                self._current_playlist = fpath
+                self._bookTitleLabel.set_label(book.title())
+                filelist = book.get_files()
+                if filelist is not None:
+                    self._install_playlist_files(filelist)
+                    self._restore_position_for_playlist(self._current_playlist, filelist[0])
+                    return
+        self._statusbar.push("Couldn't load %s" % fpath)
 
     def on_playlistchooserdialog_file_activated(self, filedialog):
         filedialog.hide()
