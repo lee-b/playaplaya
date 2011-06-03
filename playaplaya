@@ -15,7 +15,8 @@ from conf import Conf
 
 class Main(object):
     MSECS_PER_TICK = 200
-    SECS_PER_SAVE = 30
+    MSECS_PER_SAVE = 30000          # save position once every 30 seconds
+
     DEFAULT_BOOK_IMAGE_W = 100
     DEFAULT_BOOK_IMAGE_H = 100
 
@@ -30,7 +31,6 @@ class Main(object):
         self._app_name = app_name
 
         self._conf = Conf(app_name)
-        self._tick_count = 0
 
         self._current_pos = None
         self._current_duration = None
@@ -95,6 +95,7 @@ class Main(object):
         treeview.append_column(col1)
 
         gobject.timeout_add(self.__class__.MSECS_PER_TICK, self.on_tick)
+        gobject.timeout_add(self.__class__.MSECS_PER_SAVE, self.on_periodic_save)
 
         img_path = self._rel_path('images/book.png')
         img = self._load_image(img_path, self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
@@ -289,16 +290,11 @@ class Main(object):
             print "Error: %s" % err, debug
 
     def on_tick(self):
-        self._tick_count += 1
-
         if self.is_playing():
             try:
                 self._current_duration = float(self._player.query_duration(self._TIME_FORMAT)[0])
                 self._current_pos = self._player.query_position(self._TIME_FORMAT)[0]
                 self._change_slider_pos(self._current_pos)
-
-                if self._tick_count % (self.__class__.MSECS_PER_TICK * self.__class__.SECS_PER_SAVE) == 0:
-                    self.save()
 
             except gst.QueryError:
                 pass
@@ -330,9 +326,14 @@ class Main(object):
     def save(self):
         self._conf.set_playlist(self._current_playlist)
         self._conf.set_pos(self._current_playlist, self._current_file, self._current_pos)
+        self._conf.save()
 
     def _seconds_to_ns(self, secs):
         return secs * 1000000000
+
+    def on_periodic_save(self):
+        if self.is_playing():
+            self.save()
 
     def _quit(self):
         if self._current_playlist and self._current_file:
