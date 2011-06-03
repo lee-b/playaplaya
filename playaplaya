@@ -85,6 +85,19 @@ class Main(object):
 
         self._about = self._builder.get_object('aboutdialog')
 
+        # setup the playlist file dialog
+        self._file_chooser = self._builder.get_object('playlistchooserdialog')
+
+        self._file_chooser_playlists_filter = gtk.FileFilter()
+        self._file_chooser_playlists_filter.set_name("Recognised playlists (m3u)")
+        self._file_chooser_playlists_filter.add_pattern("*.m3u")
+        self._file_chooser.add_filter(self._file_chooser_playlists_filter)
+
+        self._file_chooser_allfiles_filter = gtk.FileFilter()
+        self._file_chooser_allfiles_filter.set_name("All files")
+        self._file_chooser_allfiles_filter.add_pattern("*")
+        self._file_chooser.add_filter(self._file_chooser_allfiles_filter)
+
         # add treeview columns
         treeview = self._builder.get_object('playlistview')
         cell0 = gtk.CellRendererText()
@@ -196,8 +209,7 @@ class Main(object):
         self._playPauseButton.set_label("Play")
 
     def on_book_open_menuitem_activate(self, widget):
-        file_chooser = self._builder.get_object('playlistchooserdialog')
-        file_chooser.show()
+        self._file_chooser.show()
 
     def _install_playlist_lines(self, lines):
         playliststore = self._builder.get_object("playliststore")
