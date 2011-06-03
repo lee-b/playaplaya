@@ -15,6 +15,7 @@ from conf import Conf
 
 class Main(object):
     MSECS_PER_TICK = 200
+    SECS_PER_SAVE = 30
     DEFAULT_BOOK_IMAGE_W = 100
     DEFAULT_BOOK_IMAGE_H = 100
 
@@ -26,8 +27,10 @@ class Main(object):
 
     def __init__(self, app_name, *args, **kwargs):
         super(Main, self).__init__(*args, **kwargs)
+        self._app_name = app_name
 
         self._conf = Conf(app_name)
+        self._tick_count = 0
 
         self._current_pos = None
         self._current_duration = None
@@ -59,6 +62,9 @@ class Main(object):
         self._builder.add_from_file(filename)
         self._builder.connect_signals(self)
 
+        self._main_win = self._builder.get_object('mainwin')
+        self._main_win.set_title(self._app_name)
+        
         self._TIME_FORMAT = gst.Format(gst.FORMAT_TIME)
 
         self._playliststore = self._builder.get_object('playliststore')
@@ -91,8 +97,6 @@ class Main(object):
         img_path = self._rel_path('images/book.png')
         img = self._load_image(img_path, self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
         self._bookCoverImage.set_from_pixbuf(img)
-
-        self._main_win = self._builder.get_object('mainwin')
 
     def _init_gst(self):
         self._player = gst.Pipeline("player")
@@ -143,12 +147,12 @@ class Main(object):
 
     def _seek_to(self, new_pos):
         self._current_pos = new_pos
-        if self._is_playing():
+        if self.is_playing():
             self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_FLUSH, new_pos)
         else:
             self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_SKIP, new_pos)
 
-    def _is_playing(self):
+    def is_playing(self):
         states = self._player.get_state()
         return states[1] == gst.STATE_PLAYING
 
@@ -265,11 +269,17 @@ class Main(object):
             print "Error: %s" % err, debug
 
     def on_tick(self):
-        if self._is_playing():
+        self._tick_count += 1
+
+        if self.is_playing():
             try:
                 self._current_duration = float(self._player.query_duration(self._TIME_FORMAT)[0])
                 self._current_pos = self._player.query_position(self._TIME_FORMAT)[0]
                 self._change_slider_pos(self._current_pos)
+
+                if self._tick_count % (self.__class__.MSECS_PER_TICK * self.__class__.SECS_PER_SAVE) == 0:
+                    self.save()
+
             except gst.QueryError:
                 pass
 
@@ -280,7 +290,7 @@ class Main(object):
         self._seek_to(val)
 
     def on_playPauseButton_clicked(self, widget):
-        if self._is_playing():
+        if self.is_playing():
             self._pause()
         else:
             self._play()
@@ -297,10 +307,13 @@ class Main(object):
     def on_nextButton_clicked(self, widget):
         self._next_file()
 
+    def save(self):
+        self._conf.set_playlist(self._current_playlist)
+        self._conf.set_pos(self._current_playlist, self._current_file, self._current_pos)
+
     def _quit(self):
         if self._current_playlist and self._current_file:
-            self._conf.set_playlist(self._current_playlist)
-            self._conf.set_pos(self._current_playlist, self._current_file, self._current_pos)
+            self.save()
         self._conf.save()
         gtk.main_quit()
 
@@ -310,7 +323,16 @@ class Main(object):
     def on_app_quit_menuitem_activate(self, widget):
         self._quit()
 
-main = Main("PlayaPlaya")
-gtk.gdk.threads_init()
-gtk.main()
+if __name__ == "__main__":
+    app = Main("PlayaPlaya")
+    gtk.gdk.threads_init()
+
+    try:
+        try:
+            gtk.main()
+        finally:
+            if app.is_playing():
+                app.save()
+    except (KeyboardInterrupt, SystemExit), ex:
+        pass
 
