@@ -115,14 +115,9 @@ class Main(object):
         self._bookCoverImage.set_from_pixbuf(img)
 
     def _init_gst(self):
-        self._player = gst.Pipeline("player")
-        source = gst.element_factory_make("filesrc", "file-source")
-        decoder = gst.element_factory_make("mad", "mp3-decoder")
-        conv = gst.element_factory_make("audioconvert", "converter")
-        sink = gst.element_factory_make("alsasink", "alsa-output")
-
-        self._player.add(source, decoder, conv, sink)
-        gst.element_link_many(source, decoder, conv, sink)
+        self._player = gst.element_factory_make("playbin2", "player")
+        fakesink = gst.element_factory_make("fakesink", "fakesink")
+        self._player.set_property("video-sink", fakesink)
 
         bus = self._player.get_bus()
         bus.add_signal_watch()
@@ -176,7 +171,7 @@ class Main(object):
         return states[1] == gst.STATE_PLAYING
 
     def _set_file(self, fpath):
-        self._player.get_by_name("file-source").set_property("location", fpath)
+        self._player.set_property("uri", "file://" + fpath)
         self._current_file = fpath
         self._change_slider_and_seek_to(0.0)
 
