@@ -21,6 +21,9 @@ class Main(object):
     COL_NUM=0
     COL_FILENAME=1
 
+    def _rel_path(self, p):
+        return os.path.join(os.path.dirname(__file__), p)
+
     def __init__(self, app_name, *args, **kwargs):
         super(Main, self).__init__(*args, **kwargs)
 
@@ -35,7 +38,12 @@ class Main(object):
         self._init_gst()
         
         self._conf.load()
-        self._restore_playlist()
+
+        if len(sys.argv) == 2:
+            playlist = sys.argv[1]
+            self._load_playlist(playlist)
+        else:
+            self._restore_playlist()
 
         self._main_win.show()
 
@@ -45,7 +53,7 @@ class Main(object):
             self._load_playlist(pl)
 
     def _init_gui(self):
-        filename = "gui.glade"
+        filename = self._rel_path("gui.glade")
 
         self._builder = gtk.Builder()
         self._builder.add_from_file(filename)
@@ -79,7 +87,8 @@ class Main(object):
 
         gobject.timeout_add(self.__class__.MSECS_PER_TICK, self.on_tick)
 
-        img = self._load_image('images/book.png', self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
+        img_path = self._rel_path('images/book.png')
+        img = self._load_image(img_path, self.__class__.DEFAULT_BOOK_IMAGE_W,self.__class__.DEFAULT_BOOK_IMAGE_H)
         self._bookCoverImage.set_from_pixbuf(img)
 
         self._main_win = self._builder.get_object('mainwin')
