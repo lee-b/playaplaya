@@ -154,6 +154,10 @@ class Main(object):
         else:
             self._player.seek_simple(self._TIME_FORMAT, gst.SEEK_FLAG_SKIP, new_pos)
 
+    def _delta_seek(self, delta):
+        new_pos = self._current_pos + delta
+        self._seek_to(new_pos)
+
     def is_playing(self):
         states = self._player.get_state()
         return states[1] == gst.STATE_PLAYING
@@ -236,6 +240,22 @@ class Main(object):
         self._slider.set_range(0.0, 0.1)
         self._slider.set_value(0.0)
 
+    def _prev_file(self):
+        self._clear_current_file()
+        
+        current_file = self._current_file
+        last_file = None
+        prev_file = None
+        for item in self._playliststore:
+            if item[1] == current_file:
+                prev_file = last_file
+            last_file = item[1]
+
+        if prev_file:
+            self._play_new_file(prev_file)
+        else:
+            self._stop()
+
     def _next_file(self):
         self._clear_current_file()
     
@@ -255,7 +275,6 @@ class Main(object):
                 next_file = next_item[1]
 
         if next_file:
-            print "Attempting to play %r" % next_file
             self._play_new_file(next_file)
         else:
             self._stop()
@@ -298,13 +317,13 @@ class Main(object):
             self._play()
 
     def on_previousButton_clicked(self, widget):
-        pass
+        self._prev_file()
 
     def on_backButton_clicked(self, widget):
-        pass
+        self._delta_seek(self._seconds_to_ns(-5))
 
     def on_forwardButton_clicked(self, widget):
-        pass
+        self._delta_seek(self._seconds_to_ns(5))
 
     def on_nextButton_clicked(self, widget):
         self._next_file()
@@ -312,6 +331,9 @@ class Main(object):
     def save(self):
         self._conf.set_playlist(self._current_playlist)
         self._conf.set_pos(self._current_playlist, self._current_file, self._current_pos)
+
+    def _seconds_to_ns(self, secs):
+        return secs * 1000000000
 
     def _quit(self):
         if self._current_playlist and self._current_file:
