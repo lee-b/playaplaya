@@ -185,7 +185,7 @@ class Main(object):
         self._playPauseButton.set_label("Pause")
 
     def _pause(self):
-        self._player.set_state(gst.STATE_READY)
+        self._player.set_state(gst.STATE_PAUSED)
         self._playPauseButton.set_label("Play")
 
     def _stop(self):
