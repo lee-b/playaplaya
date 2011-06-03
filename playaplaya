@@ -83,6 +83,8 @@ class Main(object):
         self._chapterLabel.set_label(u"")
         self._miscLabel.set_label(u"")
 
+        self._about = self._builder.get_object('aboutdialog')
+
         # add treeview columns
         treeview = self._builder.get_object('playlistview')
         cell0 = gtk.CellRendererText()
@@ -322,6 +324,12 @@ class Main(object):
 
     def on_app_quit_menuitem_activate(self, widget):
         self._quit()
+
+    def on_about_menuitem_activate(self, widget):
+        self._about.show()
+
+    def on_aboutdialog_response(self, widget, ev):
+        widget.hide()
 
 if __name__ == "__main__":
     app = Main("PlayaPlaya")
