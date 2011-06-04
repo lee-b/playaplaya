@@ -27,11 +27,18 @@ class Main(object):
     def _rel_path(self, p):
         return os.path.join(os.path.dirname(os.path.realpath(__file__)), p)
 
+    def on_logout(self, *args):
+        # save settings and create a file that tells the wrapper that we have exited correctly!
+        # we'll still return with status code 1, but that's just gtk crashing somehow
+        self.save()
+
     def __init__(self, app_name, *args, **kwargs):
         from playlist_handler import PlaylistFormatManager
 
         super(Main, self).__init__(*args, **kwargs)
+
         self._app_name = app_name
+        self.version = ''
 
         self._conf = Conf(app_name)
 
@@ -53,7 +60,22 @@ class Main(object):
         else:
             self._restore_playlist()
 
+        self._hook_shutdown()
         self._main_win.show()
+
+    def _hook_shutdown(self):
+        try:
+            import gnome
+            import gnome.ui
+
+            # This is going to trigger a warning that program name has been set twice, you can ignore this, it seems to be a problem with a recent version of glib, the warning is all over the place out there
+            gnome.program_init('Program', self.version)
+
+            client = gnome.ui.master_client() # connect us to gnome session manager, we need to init the program before this
+            client.connect('save-yourself', self.on_logout) # This gets called when the user confirms the logout/shutdown
+            client.connect('die', self.on_logout)
+        except ImportError, e:
+            print "WARNING: Python GNOME libraries unavailable; can't save on GNOME logout"
 
     def _restore_playlist(self):
         pl = self._conf.get_playlist()
