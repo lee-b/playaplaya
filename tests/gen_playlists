@@ -1,0 +1,10 @@
+#!/bin/bash
+
+SUPPORTED_FORMATS="m3u pls xspf html rss pla txx"
+MEDIA_DIR=media
+
+for FORMAT in $SUPPORTED_FORMATS; do
+	fapg -r -f $FORMAT -o playlist.$FORMAT $MEDIA_DIR/
+done
+
+

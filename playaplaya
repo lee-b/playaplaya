@@ -10,9 +10,11 @@ import gobject
 import os
 import sys
 import time
+import urllib
+from playaplayalib.utils import prettify_uri
 
-
-from conf import Conf
+app_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path = [ app_dir ] + sys.path
 
 class Main(object):
     MSECS_PER_TICK = 200
@@ -33,7 +35,8 @@ class Main(object):
         self.save()
 
     def __init__(self, app_name, *args, **kwargs):
-        from playlist_handler import PlaylistFormatManager
+        from playaplayalib.conf import Conf
+        from playaplayalib.playlists import PlaylistManager
 
         super(Main, self).__init__(*args, **kwargs)
 
@@ -47,7 +50,7 @@ class Main(object):
         self._current_file = None
         self._current_playlist = None
 
-        self._playlist_format_manager = PlaylistFormatManager()
+        self._playlist_manager = PlaylistManager()
 
         self._init_gui()
         self._init_gst()
@@ -83,7 +86,7 @@ class Main(object):
             self._load_playlist(pl)
 
     def _init_gui(self):
-        filename = self._rel_path("gui.glade")
+        filename = self._rel_path("ui/gui.glade")
 
         self._builder = gtk.Builder()
         self._builder.add_from_file(filename)
@@ -144,7 +147,7 @@ class Main(object):
 
         other_format_filters = []
 
-        for filter_name, filter_exts in self._playlist_format_manager.supported_filters():
+        for filter_name, filter_exts in self._playlist_manager.supported_filters():
             f = gtk.FileFilter()
             f.set_name(filter_name)
             for ext in filter_exts:
@@ -218,22 +221,18 @@ class Main(object):
         states = self._player.get_state()
         return states[1] == gst.STATE_PLAYING
 
-    def _set_file(self, fpath):
-        self._player.set_property("uri", "file://" + fpath)
-        self._current_file = fpath
+    def _set_uri(self, uri):
+        if os.path.isdir(uri):
+            raise RuntimeError("'%s' is not a uri" % uri)
+        self._player.set_property("uri", uri)
+        self._current_file = uri
         self._change_slider_and_seek_to(0.0)
 
-    def _prettify_fpath(self, fpath):
-        basename = os.path.basename(fpath)
-        basename.replace('_', ' ')
-        basename = basename.split('.')[0]
-        return basename
-
-    def _play_new_file(self, fpath):
+    def _play_new_file(self, uri):
         self._stop()
         self._current_duration = 0.1 # we don't know, but assume this is more than 0, since gtkscale doesn't like it if max == min
-        self._set_file(fpath)
-        self._chapterLabel.set_label(self._prettify_fpath(fpath))
+        self._set_uri(uri)
+        self._chapterLabel.set_label(prettify_uri(uri))
         self._miscLabel.set_label(u"")
         self._play()
 
@@ -270,18 +269,28 @@ class Main(object):
         return None
 
     def _load_playlist(self, fpath):
-        handler = self._playlist_format_manager.handler_for_filepath(fpath)
-        if handler is not None:
-            book = handler.load_book(fpath)
-            if book is not None:
-                self._current_playlist = fpath
-                self._bookTitleLabel.set_label(book.title())
-                filelist = book.get_files()
-                if filelist is not None:
-                    self._install_playlist_files(filelist)
-                    self._restore_position_for_playlist(self._current_playlist, filelist[0])
-                    return
-        self._statusbar.push(self._statusbar_context_id, "Couldn't load %s" % fpath)
+        try:
+            handler = self._playlist_manager.handler_for_filepath(fpath)
+            if handler is not None:
+                book = handler.load_book(fpath)
+                if book is not None:
+                    self._current_playlist = fpath
+                    title = book.title()
+                    self._bookTitleLabel.set_label(title)
+                    filelist = book.get_files()
+                    if filelist is not None and len(filelist) != 0:
+                        self._install_playlist_files(filelist)
+                        self._restore_position_for_playlist(self._current_playlist, filelist[0])
+                        return
+                    else:
+                        self._report_error("Found no files in playlist")
+        except RuntimeError, e:
+            self._report_error("Couldn't load playlist; check stdout for details")
+            print "Error, couldn't load '%s'" % fpath
+            print e
+
+    def _report_error(self, msg):
+        self._statusbar.push(self._statusbar_context_id, msg)
 
     def on_playlistchooserdialog_file_activated(self, filedialog):
         filedialog.hide()

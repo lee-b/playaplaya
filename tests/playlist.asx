@@ -1,0 +1,14 @@
+<asx version = "3.0">
+  <entry>
+    <Title>HitzRadio.com - #1 For All The Hits!</Title>
+    <Author>HitzRadio.com</Author>
+    <Copyright>2006 HitzRadio.com</Copyright>
+    <param name="HTMLView" value="http://www.hitzradio.com" />
+    <ref href = "media/x.mp3" value="mp3" />
+  </entry>
+  <entry>
+    <ref href = "media/y.mp3" value="mp3" />
+    <Title>HitzRadio.com - #1 For All The Hits! (Server #1)</Title>
+    <Author>Visit us at http://www.hitzradio.com</Author>
+  </entry>
+</asx>

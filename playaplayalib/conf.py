@@ -1,12 +1,18 @@
 from ConfigParser import ConfigParser
 import os
 
+is_dev = os.path.exists(os.path.join(os.path.dirname(__file__), 'is_dev.txt'))
+
 class Conf(object):
     def __init__(self, app_name, *args, **kwargs):
         super(Conf, self).__init__(*args, **kwargs)
 
         self._conf_dir = os.path.expanduser("~/.config/%s" % app_name)
-        self._conf_fpath = os.path.join(self._conf_dir, "%s.conf" % app_name)
+
+        if is_dev:
+            self._conf_fpath = os.path.join(self._conf_dir, "%s_dev.conf" % app_name)
+        else:
+            self._conf_fpath = os.path.join(self._conf_dir, "%s.conf" % app_name)
 
         self._cp = ConfigParser()
 

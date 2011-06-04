@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- generator="FAPG 0.41 -->
+<rss xmlns:itunes="http://www.itunes.com/DTDs/Podcast-1.0.dtd" version="2.0">
+    <channel>
+	<title>fritzserver.de -  - media/</title>
+	<description>Directory Tree </description>
+	<link></link>
+	<itunes:image href="/xml/podcast.jpg"/>
+	<lastBuildDate>Sat 04 Jun 2011 18:21:13 +0100</lastBuildDate>
+	<generator>FAPG 0.41</generator>
+	<image>
+		<url>/podcast.jpg</url>
+		<title>Server Logo</title>
+		<link></link>
+		<description>Feed provided by FAPG. Click to visit.</description>
+	</image>
+	<itunes:owner>
+		<itunes:name>Admin </itunes:name>
+		<itunes:email>podcast@fritzserver.de</itunes:email>
+	</itunes:owner>
+	<category>Various</category>
+	<itunes:subtitle>Directory Tree </itunes:subtitle>
+	<itunes:author>kin</itunes:author>
+	<copyright>unknown</copyright>
+	<language>en_GB.UTF-8</language>
+	<itunes:explicit>No</itunes:explicit>
+	<ttl>1800</ttl>
+    </channel>
+</rss>

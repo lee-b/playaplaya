@@ -1,7 +1,15 @@
 class Book(object):
     def __init__(self, title, files, description, cover_image_uri):
-        self._title = title
-        self._files = files
+        if title:
+            self._title = title
+        else:
+            self._title = u""
+
+        if files:
+            self._files = files
+        else:
+            self._files = u""
+
         self._description = description
         self._cover_image_uri = cover_image_uri
 
