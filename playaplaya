@@ -41,7 +41,6 @@ class Main(object):
         super(Main, self).__init__(*args, **kwargs)
 
         self._app_name = app_name
-        self.version = ''
 
         self._conf = Conf(app_name)
 
@@ -72,7 +71,7 @@ class Main(object):
             import gnome.ui
 
             # This is going to trigger a warning that program name has been set twice, you can ignore this, it seems to be a problem with a recent version of glib, the warning is all over the place out there
-            gnome.program_init('Program', self.version)
+            gnome.program_init('Program', self._conf.get_version())
 
             client = gnome.ui.master_client() # connect us to gnome session manager, we need to init the program before this
             client.connect('save-yourself', self.on_logout) # This gets called when the user confirms the logout/shutdown
@@ -117,6 +116,7 @@ class Main(object):
         self._miscLabel.set_label(u"")
 
         self._about = self._builder.get_object('aboutdialog')
+        self._about.set_version(self._conf.get_version())
 
         # setup the playlist file dialog
         self._file_chooser = self._builder.get_object('playlistchooserdialog')
