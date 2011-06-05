@@ -53,7 +53,7 @@ class Main(object):
 
         self._init_gui()
         self._init_gst()
-        
+
         self._conf.load()
 
         if len(sys.argv) == 2:
@@ -423,14 +423,16 @@ class Main(object):
 
 if __name__ == "__main__":
     app = Main("PlayaPlaya")
-    gtk.gdk.threads_init()
-
     try:
         try:
+            gtk.gdk.threads_init()
+            gtk.gdk.threads_enter()
             gtk.main()
         finally:
             if app.is_playing():
                 app.save()
+            gtk.gdk.threads_leave()
     except (KeyboardInterrupt, SystemExit), ex:
         pass
+
 
